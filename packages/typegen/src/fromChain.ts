@@ -3,6 +3,7 @@
 
 import type { HexString } from '@polkadot/util/types';
 
+import fs from 'fs';
 import path from 'path';
 import yargs from 'yargs';
 
@@ -97,7 +98,9 @@ export function main (): void {
       };
 
       websocket.onmessage = (message: unknown): void => {
-        generate((JSON.parse((message as Record<string, string>).data) as Record<string, HexString>).result, pkg, output, isStrict);
+        const data = ((JSON.parse((message as Record<string, string>).data) as Record<string, HexString>));
+        fs.writeFileSync(path.join(process.cwd(), output, 'metadata.json'), JSON.stringify(data, null, 2));
+        generate(data.result, pkg, output, isStrict);
       };
     } catch (error) {
       process.exit(1);

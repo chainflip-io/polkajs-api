@@ -6,6 +6,7 @@ import type { PortableRegistry } from '@polkadot/types/metadata';
 import type { Codec, DefinitionRpcParam } from '@polkadot/types/types';
 
 import fs from 'fs';
+import path from 'path';
 
 import { Metadata, TypeRegistry, Vec } from '@polkadot/types';
 import * as definitions from '@polkadot/types/interfaces/definitions';
@@ -160,7 +161,6 @@ function addRpc (): string {
             const jsonrpc = (method.endpoint || `${sectionName}_${methodName}`);
 
             container.items.push({
-              interface: '`' + `api.rpc.${sectionName}.${methodName}` + '`',
               jsonrpc: '`' + jsonrpc + '`',
               // link: jsonrpc,
               name: `${methodName}(${args}): ${type}`,
@@ -191,7 +191,6 @@ function addConstants ({ lookup, pallets }: MetadataLatest): string {
               const methodName = stringCamelCase(name);
 
               return {
-                interface: '`' + `api.consts.${sectionName}.${methodName}` + '`',
                 name: `${methodName}: ` + '`' + getSiName(lookup, type) + '`',
                 ...(docs.length && { summary: docs })
               };
@@ -232,7 +231,6 @@ function addStorage ({ lookup, pallets, registry }: MetadataLatest): string {
             const outputType = unwrapStorageType(registry, func.type, func.modifier.isOptional);
 
             return {
-              interface: '`' + `api.query.${sectionName}.${methodName}` + '`',
               name: `${methodName}(${arg}): ` + '`' + outputType + '`',
               ...(func.docs.length && { summary: func.docs })
             };
@@ -253,7 +251,6 @@ function addStorage ({ lookup, pallets, registry }: MetadataLatest): string {
         const outputType = unwrapStorageType(registry, meta.type, meta.modifier.isOptional);
 
         return {
-          interface: '`' + `api.query.substrate.${methodName}` + '`',
           name: `${methodName}(${arg}): ` + '`' + outputType + '`',
           summary: meta.docs
         };
@@ -284,7 +281,6 @@ function addExtrinsics ({ lookup, pallets }: MetadataLatest): string {
               ).join(', ');
 
               return {
-                interface: '`' + `api.tx.${sectionName}.${methodName}` + '`',
                 name: `${methodName}(${args})`,
                 ...(docs.length && { summary: docs })
               };
@@ -313,7 +309,6 @@ function addEvents ({ lookup, pallets }: MetadataLatest): string {
             ).join(', ');
 
             return {
-              interface: '`' + `api.events.${stringCamelCase(meta.name)}.${methodName}.is` + '`',
               name: `${methodName}(${args})`,
               ...(docs.length && { summary: docs })
             };
@@ -335,7 +330,6 @@ function addErrors ({ lookup, pallets }: MetadataLatest): string {
         items: lookup.getSiType(moduleMetadata.errors.unwrap().type).def.asVariant.variants
           .sort(sortByName)
           .map((error) => ({
-            interface: '`' + `api.errors.${stringCamelCase(moduleMetadata.name)}.${error.name.toString()}.is` + '`',
             name: error.name.toString(),
             ...(error.docs.length && { summary: error.docs })
           })),
@@ -362,7 +356,10 @@ function writeFile (name: string, ...chunks: any[]): void {
 
 export function main (): void {
   const registry = new TypeRegistry();
-  const metadata = new Metadata(registry, rpcdata);
+
+  const rpchex = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'generated', 'metadata.json'), 'utf8')).result;
+
+  const metadata = new Metadata(registry, rpchex);
 
   registry.setMetadata(metadata);
 
